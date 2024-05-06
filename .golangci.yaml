@@ -1,0 +1,33 @@
+run:
+  timeout: 120m
+
+linters:
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - errorlint
+    - exportloopref
+    - gofmt
+    - goimports
+    - gosec
+    - gomodguard
+
+linters-settings:
+  gosec:
+    excludes: []
+    confidence: low
+    config:
+      global:
+        audit: true
+
+  gomodguard:
+    blocked:
+      modules:
+        - "github.com/Azure/go-autorest/autorest/azure/auth":
+            reason: "deprecated"
+
+issues: {}
+
+output:
+  sort-results: true

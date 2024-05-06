@@ -1,0 +1,10 @@
+name: "ci/docker"
+
+on: [pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-docker.yaml
+    secrets: inherit
+    with:
+      publish: false

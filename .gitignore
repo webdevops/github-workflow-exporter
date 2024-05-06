@@ -1,0 +1,4 @@
+/vendor/
+/github-workflow-exporter*
+/release-assets
+/.vscode
