@@ -1,6 +1,6 @@
 # Github Workflows exporter
 
-[![license](https://img.shields.io/github/license/webdevops/github-workflow-expoter.svg)](https://github.com/webdevops/github-workflow-expoter/blob/master/LICENSE)
+[![license](https://img.shields.io/github/license/webdevops/github-workflow-expoter.svg)](https://github.com/webdevops/github-workflow-expoter/blob/main/LICENSE)
 [![DockerHub](https://img.shields.io/badge/DockerHub-webdevops%2Fgithub--workflow--expoter-blue)](https://hub.docker.com/r/webdevops/github-workflow-expoter/)
 [![Quay.io](https://img.shields.io/badge/Quay.io-webdevops%2Fgithub--workflow--expoter-blue)](https://quay.io/repository/webdevops/github-workflow-expoter)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/github-workflow-expoter)](https://artifacthub.io/packages/search?repo=github-workflow-expoter)
