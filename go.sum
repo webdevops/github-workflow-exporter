@@ -146,8 +146,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/webdevops/go-common v0.0.0-20240229220036-40910d2ba23e h1:kLp1s6IARKTNZH9RaxoHw4OmiQWuCAvi0k1xlsnjWIM=
-github.com/webdevops/go-common v0.0.0-20240229220036-40910d2ba23e/go.mod h1:3gGYy5km5tnDnyubBNo4ZhmXjrTfwbxfHSkukc3DO+E=
+github.com/webdevops/go-common v0.0.0-20240512143320-3218f7a5ccfc h1:MORv8wx9YaYWSj8NJ1G4belLl7xtf9f4hcz3yDCzpgc=
+github.com/webdevops/go-common v0.0.0-20240512143320-3218f7a5ccfc/go.mod h1:i+TInCe19T5v7LcZMX8E96pEoAY4aBMV1D/doASEFhY=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=

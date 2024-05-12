@@ -9,7 +9,7 @@ require (
 	github.com/google/go-github/v61 v61.0.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/prometheus/client_golang v1.19.1
-	github.com/webdevops/go-common v0.0.0-20240229220036-40910d2ba23e
+	github.com/webdevops/go-common v0.0.0-20240512143320-3218f7a5ccfc
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.2.0
 )
