@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	_ "github.com/KimMachineGun/automemlimit"
-	"github.com/KimMachineGun/automemlimit/memlimit"
 	ghinstallation "github.com/bradleyfalzon/ghinstallation/v2"
 	github "github.com/google/go-github/v61/github"
 	flags "github.com/jessevdk/go-flags"
@@ -53,15 +52,7 @@ func main() {
 	logger.Infof("starting github-workflows-exporter v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
 	logger.Info(string(Opts.GetJson()))
 
-	memlimit.SetGoMemLimitWithOpts(
-		memlimit.WithProvider(
-			memlimit.ApplyFallback(
-				memlimit.FromCgroup,
-				memlimit.FromSystem,
-			),
-		),
-		memlimit.WithLogger(slogger),
-	)
+	initSystem()
 
 	logger.Infof("init GitHub connection")
 	initGitHubConnection()
