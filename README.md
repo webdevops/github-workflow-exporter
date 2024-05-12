@@ -40,6 +40,15 @@ Help Options:
 Supports either PAT token auth via env var `GITHUB_TOKEN`
 or GitHub App auth with env vars `GITHUB_APP_ID` (id), `GITHUB_APP_INSTALLATION_ID` (id) and `GITHUB_APP_PRIVATE_KEY` (file path).
 
+### GOMEMLIMIT
+
+[automemlimit](https://github.com/KimMachineGun/automemlimit) is used for automatically detecting `GOMEMLIMIT` inside containers.
+
+| Env var            | Description                                                                                               |
+|--------------------|-----------------------------------------------------------------------------------------------------------|
+| `AUTOMEMLIMIT=off` | Disabling auto memlimit                                                                                   |
+| `GOMEMLIMIT=0.9`   | Limits golang memory to 90% of system/cgroup memory (keep some mem available to system; default is `0.9`) |
+
 ## Metrics
 
 | Metric                                         | Description                                   |
