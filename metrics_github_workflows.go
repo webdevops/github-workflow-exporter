@@ -253,6 +253,17 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 	}
 
 	for _, repo := range repositories {
+		// skip archived or disabled repos
+		if repo.GetArchived() || repo.GetDisabled() {
+			continue
+		}
+
+		// skip repos without default branch (not setup yet?)
+		if repo.GetDefaultBranch() == "" {
+			// repo doesn't have default branch
+			continue
+		}
+
 		// build custom properties
 		propLabels := prometheus.Labels{}
 		if len(Opts.GitHub.Repositories.CustomProperties) >= 1 {
@@ -277,11 +288,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 		}
 		repositoryMetric.AddInfo(labels)
 
-		if repo.GetDefaultBranch() == "" {
-			// repo doesn't have default branch
-			continue
-		}
-
+		// get workflows
 		workflows, err := m.getRepoWorkflows(org, repo.GetName())
 		if err != nil {
 			panic(err)
