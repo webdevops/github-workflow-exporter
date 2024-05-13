@@ -112,6 +112,8 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 	}
 
 	for {
+		m.Logger().Debugf(`fetching repository list with page "%d"`, opts.Page)
+
 		result, response, err := githubClient.Repositories.ListByOrg(m.Context(), org, &opts)
 		var ghRateLimitError *github.RateLimitError
 		if ok := errors.As(err, &ghRateLimitError); ok {
@@ -140,6 +142,8 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(org, repo string) ([]
 	opts := github.ListOptions{PerPage: 100, Page: 1}
 
 	for {
+		m.Logger().Debugf(`fetching workflows list for repo "%s" with page "%d"`, repo, opts.Page)
+
 		result, response, err := githubClient.Actions.ListWorkflows(m.Context(), org, repo, &opts)
 		var ghRateLimitError *github.RateLimitError
 		if ok := errors.As(err, &ghRateLimitError); ok {
@@ -209,8 +213,6 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 	}
 
 	for _, repo := range repositories {
-		var workflowRuns []*github.WorkflowRun
-
 		repositoryMetric.AddInfo(prometheus.Labels{
 			"org":           org,
 			"repo":          repo.GetName(),
@@ -237,7 +239,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 			})
 		}
 
-		if len(workflowRuns) >= 1 {
+		if len(workflows) >= 1 {
 			workflowRuns, err := m.getRepoWorkflowRuns(repo)
 			if err != nil {
 				panic(err)
