@@ -30,6 +30,10 @@ type (
 				AppPrivateKeyFile *string `long:"github.app.keyfile"         env:"GITHUB_APP_PRIVATE_KEY"      description:"GitHub app auth: Private key (path to file)"`
 			}
 
+			Repositories struct {
+				CustomProperties []string `long:"github.repository.customprops"         env:"GITHUB_REPOSITORY_CUSTOMPROPS"      description:"GitHub repository custom properties as labels for repos and workflows (space delimiter)" env-delim:" "`
+			}
+
 			Workflows struct {
 				Timeframe time.Duration `long:"github.workflows.timeframe"     env:"GITHUB_WORKFLOWS_TIMEFRAME"    description:"GitHub workflow timeframe for fetching" default:"168h"`
 			}

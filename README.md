@@ -14,25 +14,27 @@ Usage:
   github-workflow-exporter [OPTIONS]
 
 Application Options:
-      --log.debug                   debug mode [$LOG_DEBUG]
-      --log.devel                   development mode [$LOG_DEVEL]
-      --log.json                    Switch log output to json format [$LOG_JSON]
-      --github.enterprise.url=      GitHub enterprise url (self hosted) [$GITHUB_ENTERPRISE_URL]
-      --github.organization=        GitHub organization name [$GITHUB_ORGANIZATION]
-      --github.token=               GitHub token auth: PAT [$GITHUB_TOKEN]
-      --github.app.id=              GitHub app auth: App ID [$GITHUB_APP_ID]
-      --github.app.installationid=  GitHub app auth: App installation ID [$GITHUB_APP_INSTALLATION_ID]
-      --github.app.keyfile=         GitHub app auth: Private key (path to file) [$GITHUB_APP_PRIVATE_KEY]
-      --github.workflows.timeframe= GitHub workflow timeframe for fetching (default: 168h) [$GITHUB_WORKFLOWS_TIMEFRAME]
-      --scrape.time=                Scrape time (default: 30m) [$SCRAPE_TIME]
-      --cache.path=                 Cache path (to folder, file://path... or azblob://storageaccount.blob.core.windows.net/containername or
-                                    k8scm://{namespace}/{configmap}}) [$CACHE_PATH]
-      --server.bind=                Server address (default: :8080) [$SERVER_BIND]
-      --server.timeout.read=        Server read timeout (default: 5s) [$SERVER_TIMEOUT_READ]
-      --server.timeout.write=       Server write timeout (default: 10s) [$SERVER_TIMEOUT_WRITE]
+      --log.debug                      debug mode [$LOG_DEBUG]
+      --log.devel                      development mode [$LOG_DEVEL]
+      --log.json                       Switch log output to json format [$LOG_JSON]
+      --github.enterprise.url=         GitHub enterprise url (self hosted) [$GITHUB_ENTERPRISE_URL]
+      --github.organization=           GitHub organization name [$GITHUB_ORGANIZATION]
+      --github.token=                  GitHub token auth: PAT [$GITHUB_TOKEN]
+      --github.app.id=                 GitHub app auth: App ID [$GITHUB_APP_ID]
+      --github.app.installationid=     GitHub app auth: App installation ID [$GITHUB_APP_INSTALLATION_ID]
+      --github.app.keyfile=            GitHub app auth: Private key (path to file) [$GITHUB_APP_PRIVATE_KEY]
+      --github.repository.customprops= GitHub repository custom properties as labels for repos and workflows (space delimiter)
+                                       [$GITHUB_REPOSITORY_CUSTOMPROPS]
+      --github.workflows.timeframe=    GitHub workflow timeframe for fetching (default: 168h) [$GITHUB_WORKFLOWS_TIMEFRAME]
+      --scrape.time=                   Scrape time (default: 30m) [$SCRAPE_TIME]
+      --cache.path=                    Cache path (to folder, file://path... or azblob://storageaccount.blob.core.windows.net/containername or
+                                       k8scm://{namespace}/{configmap}}) [$CACHE_PATH]
+      --server.bind=                   Server address (default: :8080) [$SERVER_BIND]
+      --server.timeout.read=           Server read timeout (default: 5s) [$SERVER_TIMEOUT_READ]
+      --server.timeout.write=          Server write timeout (default: 10s) [$SERVER_TIMEOUT_WRITE]
 
 Help Options:
-  -h, --help                        Show this help message
+  -h, --help                           Show this help message
 ```
 
 ### Authentication

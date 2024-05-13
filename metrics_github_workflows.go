@@ -2,12 +2,17 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/go-github/v61/github"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/webdevops/go-common/prometheus/collector"
 	"github.com/webdevops/go-common/utils/to"
+)
+
+const (
+	CUSTOMPROP_LABEL_FMT = "prop_%s"
 )
 
 type (
@@ -27,16 +32,24 @@ type (
 func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) {
 	m.Processor.Setup(collector)
 
+	var customPropLabels []string
+	for _, customProp := range Opts.GitHub.Repositories.CustomProperties {
+		customPropLabels = append(customPropLabels, fmt.Sprintf(CUSTOMPROP_LABEL_FMT, customProp))
+	}
+
 	m.prometheus.repository = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "github_repository_info",
 			Help: "GitHub repository info",
 		},
-		[]string{
-			"org",
-			"repo",
-			"defaultBranch",
-		},
+		append(
+			[]string{
+				"org",
+				"repo",
+				"defaultBranch",
+			},
+			customPropLabels...,
+		),
 	)
 	m.Collector.RegisterMetricList("repository", m.prometheus.repository, true)
 
@@ -45,13 +58,16 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 			Name: "github_workflow_info",
 			Help: "GitHub workflow info",
 		},
-		[]string{
-			"org",
-			"repo",
-			"workflow",
-			"state",
-			"path",
-		},
+		append(
+			[]string{
+				"org",
+				"repo",
+				"workflow",
+				"state",
+				"path",
+			},
+			customPropLabels...,
+		),
 	)
 	m.Collector.RegisterMetricList("workflow", m.prometheus.workflow, true)
 
@@ -131,6 +147,30 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 			break
 		}
 		opts.Page = response.NextPage
+	}
+
+	if len(Opts.GitHub.Repositories.CustomProperties) >= 1 {
+		for _, repository := range repositories {
+			var err error
+			var repoCustomProperties []*github.CustomPropertyValue
+			for {
+				repoCustomProperties, _, err = githubClient.Repositories.GetAllCustomPropertyValues(m.Context(), org, repository.GetName())
+				var ghRateLimitError *github.RateLimitError
+				if ok := errors.As(err, &ghRateLimitError); ok {
+					m.Logger().Debugf("GetAllCustomPropertyValues ratelimited. Pausing until %s", ghRateLimitError.Rate.Reset.Time.String())
+					time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
+					continue
+				} else if err != nil {
+					panic(err)
+				}
+				break
+			}
+
+			repository.CustomProperties = map[string]string{}
+			for _, property := range repoCustomProperties {
+				repository.CustomProperties[property.PropertyName] = property.GetValue()
+			}
+		}
 	}
 
 	return repositories, nil
@@ -213,11 +253,29 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 	}
 
 	for _, repo := range repositories {
-		repositoryMetric.AddInfo(prometheus.Labels{
+		// build custom properties
+		propLabels := prometheus.Labels{}
+		if len(Opts.GitHub.Repositories.CustomProperties) >= 1 {
+			for _, customProp := range Opts.GitHub.Repositories.CustomProperties {
+				labelName := fmt.Sprintf(CUSTOMPROP_LABEL_FMT, customProp)
+				propLabels[labelName] = ""
+
+				if val, exists := repo.CustomProperties[customProp]; exists {
+					propLabels[labelName] = val
+				}
+			}
+		}
+
+		// repo info metric
+		labels := prometheus.Labels{
 			"org":           org,
 			"repo":          repo.GetName(),
 			"defaultBranch": to.String(repo.DefaultBranch),
-		})
+		}
+		for labelName, labelValue := range propLabels {
+			labels[labelName] = labelValue
+		}
+		repositoryMetric.AddInfo(labels)
 
 		if repo.GetDefaultBranch() == "" {
 			// repo doesn't have default branch
@@ -229,14 +287,19 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 			panic(err)
 		}
 
+		// workflow info metrics
 		for _, workflow := range workflows {
-			workflowMetric.AddInfo(prometheus.Labels{
+			labels := prometheus.Labels{
 				"org":      org,
 				"repo":     repo.GetName(),
 				"workflow": workflow.GetName(),
 				"state":    workflow.GetState(),
 				"path":     workflow.GetPath(),
-			})
+			}
+			for labelName, labelValue := range propLabels {
+				labels[labelName] = labelValue
+			}
+			workflowMetric.AddInfo(labels)
 		}
 
 		if len(workflows) >= 1 {
