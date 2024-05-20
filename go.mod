@@ -3,7 +3,7 @@ module github.com/webdevops/github-workflow-exporter
 go 1.22.2
 
 require (
-	github.com/KimMachineGun/automemlimit v0.6.0
+	github.com/KimMachineGun/automemlimit v0.6.1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.10.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/google/go-github/v61 v61.0.0
