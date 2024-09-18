@@ -9,10 +9,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/webdevops/go-common/prometheus/collector"
 	"github.com/webdevops/go-common/utils/to"
+	"golang.org/x/exp/slices"
 )
 
 const (
 	CUSTOMPROP_LABEL_FMT = "prop_%s"
+)
+
+var (
+	githubWorkflowRunningStatus = []string{"in_progress", "action_required", "queued", "waiting", "pending"}
 )
 
 type (
@@ -20,10 +25,16 @@ type (
 		collector.Processor
 
 		prometheus struct {
-			repository                  *prometheus.GaugeVec
-			workflow                    *prometheus.GaugeVec
-			workflowLatestRun           *prometheus.GaugeVec
-			workflowLatestRunTimestamp  *prometheus.GaugeVec
+			repository *prometheus.GaugeVec
+			workflow   *prometheus.GaugeVec
+
+			workflowRunRunning          *prometheus.GaugeVec
+			workflowRunRunningStartTime *prometheus.GaugeVec
+
+			workflowLatestRun          *prometheus.GaugeVec
+			workflowLatestRunStartTime *prometheus.GaugeVec
+			workflowLatestRunDuration  *prometheus.GaugeVec
+
 			workflowConsecutiveFailures *prometheus.GaugeVec
 		}
 	}
@@ -36,6 +47,9 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 	for _, customProp := range Opts.GitHub.Repositories.CustomProperties {
 		customPropLabels = append(customPropLabels, fmt.Sprintf(CUSTOMPROP_LABEL_FMT, customProp))
 	}
+
+	// ##############################################################3
+	// Infrastructure
 
 	m.prometheus.repository = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -72,6 +86,44 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 	)
 	m.Collector.RegisterMetricList("workflow", m.prometheus.workflow, true)
 
+	// ##############################################################3
+	// Workflow run running
+
+	m.prometheus.workflowRunRunning = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_run_running",
+			Help: "GitHub workflow running information",
+		},
+		[]string{
+			"org",
+			"repo",
+			"workflowID",
+			"workflow",
+			"event",
+			"branch",
+			"status",
+			"actorLogin",
+			"actorType",
+		},
+	)
+	m.Collector.RegisterMetricList("workflowRunRunning", m.prometheus.workflowRunRunning, true)
+
+	m.prometheus.workflowRunRunningStartTime = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_run_running_start_time_seconds",
+			Help: "GitHub workflow run running start time as unix timestamp",
+		},
+		[]string{
+			"org",
+			"repo",
+			"workflowID",
+		},
+	)
+	m.Collector.RegisterMetricList("workflowRunRunningStartTime", m.prometheus.workflowRunRunningStartTime, true)
+
+	// ##############################################################3
+	// Workflow run latest
+
 	m.prometheus.workflowLatestRun = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "github_workflow_latest_run",
@@ -91,24 +143,34 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 	)
 	m.Collector.RegisterMetricList("workflowLatestRun", m.prometheus.workflowLatestRun, true)
 
-	m.prometheus.workflowLatestRunTimestamp = prometheus.NewGaugeVec(
+	m.prometheus.workflowLatestRunStartTime = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "github_workflow_latest_run_timestamp_seconds",
+			Name: "github_workflow_latest_run_start_time_seconds",
 			Help: "GitHub workflow latest run last executed timestamp",
 		},
 		[]string{
 			"org",
 			"repo",
 			"workflowID",
-			"workflow",
-			"event",
-			"branch",
-			"conclusion",
-			"actorLogin",
-			"actorType",
 		},
 	)
-	m.Collector.RegisterMetricList("workflowLatestRunTimestamp", m.prometheus.workflowLatestRunTimestamp, true)
+	m.Collector.RegisterMetricList("workflowLatestRunStartTime", m.prometheus.workflowLatestRunStartTime, true)
+
+	m.prometheus.workflowLatestRunDuration = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_latest_run_duration_seconds",
+			Help: "GitHub workflow latest run last duration in seconds",
+		},
+		[]string{
+			"org",
+			"repo",
+			"workflowID",
+		},
+	)
+	m.Collector.RegisterMetricList("workflowLatestRunDuration", m.prometheus.workflowLatestRunDuration, true)
+
+	// ##############################################################3
+	// Workflow consecutive failed runs
 
 	m.prometheus.workflowConsecutiveFailures = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -327,6 +389,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 			}
 
 			if len(workflowRuns) >= 1 {
+				m.collectRunningRuns(Opts.GitHub.Organization, repo, workflowRuns, callback)
 				m.collectLatestRun(Opts.GitHub.Organization, repo, workflowRuns, callback)
 				m.collectConsecutiveFailures(Opts.GitHub.Organization, repo, workflowRuns, callback)
 			}
@@ -334,9 +397,50 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 	}
 }
 
+func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *github.Repository, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+	runMetric := m.Collector.GetMetricList("workflowRunRunning")
+	runStartTimeMetric := m.Collector.GetMetricList("workflowRunRunningStartTime")
+
+	for _, row := range workflowRun {
+		workflowRun := row
+
+		// ignore non running workflows
+		if !slices.Contains(githubWorkflowRunningStatus, workflowRun.GetStatus()) {
+			continue
+		}
+
+		if workflowRun.GetConclusion() != "" {
+			// skip if task has a conclusion
+			continue
+		}
+
+		infoLabels := prometheus.Labels{
+			"org":        org,
+			"repo":       repo.GetName(),
+			"workflowID": fmt.Sprintf("%v", workflowRun.GetWorkflowID()),
+			"workflow":   workflowRun.GetName(),
+			"event":      workflowRun.GetEvent(),
+			"branch":     workflowRun.GetHeadBranch(),
+			"status":     workflowRun.GetStatus(),
+			"actorLogin": workflowRun.Actor.GetLogin(),
+			"actorType":  workflowRun.Actor.GetType(),
+		}
+
+		statLabels := prometheus.Labels{
+			"org":        org,
+			"repo":       repo.GetName(),
+			"workflowID": fmt.Sprintf("%v", workflowRun.GetWorkflowID()),
+		}
+
+		runMetric.AddInfo(infoLabels)
+		runStartTimeMetric.AddTime(statLabels, workflowRun.GetRunStartedAt().Time)
+	}
+}
+
 func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *github.Repository, workflowRun []*github.WorkflowRun, callback chan<- func()) {
 	runMetric := m.Collector.GetMetricList("workflowLatestRun")
-	runTimestampMetric := m.Collector.GetMetricList("workflowLatestRunTimestamp")
+	runTimestampMetric := m.Collector.GetMetricList("workflowLatestRunStartTime")
+	runDurationMetric := m.Collector.GetMetricList("workflowLatestRunDuration")
 
 	latestJobs := map[int64]*github.WorkflowRun{}
 	for _, row := range workflowRun {
@@ -344,16 +448,7 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 		workflowId := workflowRun.GetWorkflowID()
 
 		// ignore running/not finished workflow runs
-		switch workflowRun.GetStatus() {
-		case "in_progress":
-			continue
-		case "action_required":
-			continue
-		case "queued":
-			continue
-		case "waiting":
-			continue
-		case "pending":
+		if slices.Contains(githubWorkflowRunningStatus, workflowRun.GetStatus()) {
 			continue
 		}
 
@@ -370,7 +465,7 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 	}
 
 	for _, workflowRun := range latestJobs {
-		labels := prometheus.Labels{
+		infoLabels := prometheus.Labels{
 			"org":        org,
 			"repo":       repo.GetName(),
 			"workflowID": fmt.Sprintf("%v", workflowRun.GetWorkflowID()),
@@ -382,8 +477,15 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 			"actorType":  workflowRun.Actor.GetType(),
 		}
 
-		runMetric.AddInfo(labels)
-		runTimestampMetric.AddTime(labels, workflowRun.GetRunStartedAt().Time)
+		statLabels := prometheus.Labels{
+			"org":        org,
+			"repo":       repo.GetName(),
+			"workflowID": fmt.Sprintf("%v", workflowRun.GetWorkflowID()),
+		}
+
+		runMetric.AddInfo(infoLabels)
+		runTimestampMetric.AddTime(statLabels, workflowRun.GetRunStartedAt().Time)
+		runDurationMetric.Add(statLabels, workflowRun.GetUpdatedAt().Sub(workflowRun.GetCreatedAt().Time).Seconds())
 	}
 }
 
