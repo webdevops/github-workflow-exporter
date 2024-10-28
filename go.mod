@@ -8,10 +8,10 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/google/go-github/v61 v61.0.0
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/prometheus/client_golang v1.20.4
+	github.com/prometheus/client_golang v1.20.5
 	github.com/webdevops/go-common v0.0.0-20240914143308-98dd8416e15d
 	go.uber.org/zap v1.27.0
-	go.uber.org/zap/exp v0.2.0
+	go.uber.org/zap/exp v0.3.0
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 )
 
