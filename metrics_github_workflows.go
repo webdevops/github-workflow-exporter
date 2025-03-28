@@ -394,7 +394,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 				"workflow":    workflow.GetName(),
 				"state":       workflow.GetState(),
 				"path":        workflow.GetPath(),
-				"workflowUrl": workflow.GetURL(),
+				"workflowUrl": workflow.GetHTMLURL(),
 			}
 			for labelName, labelValue := range propLabels {
 				labels[labelName] = labelValue
@@ -442,7 +442,7 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 			"workflow":          LABEL_VALUE_UNKNOWN,
 			"workflowUrl":       "",
 			"workflowRun":       workflowRun.GetName(),
-			"workflowRunUrl":    workflowRun.GetURL(),
+			"workflowRunUrl":    workflowRun.GetHTMLURL(),
 			"event":             workflowRun.GetEvent(),
 			"branch":            workflowRun.GetHeadBranch(),
 			"status":            workflowRun.GetStatus(),
@@ -452,7 +452,7 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 
 		if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
 			infoLabels["workflow"] = workflow.GetName()
-			infoLabels["workflowUrl"] = workflow.GetURL()
+			infoLabels["workflowUrl"] = workflow.GetHTMLURL()
 		}
 
 		statLabels := prometheus.Labels{
@@ -503,7 +503,7 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 			"workflow":          LABEL_VALUE_UNKNOWN,
 			"workflowUrl":       "",
 			"workflowRun":       workflowRun.GetName(),
-			"workflowRunUrl":    workflowRun.GetURL(),
+			"workflowRunUrl":    workflowRun.GetHTMLURL(),
 			"event":             workflowRun.GetEvent(),
 			"branch":            workflowRun.GetHeadBranch(),
 			"conclusion":        workflowRun.GetConclusion(),
@@ -512,7 +512,7 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 		}
 		if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
 			infoLabels["workflow"] = workflow.GetName()
-			infoLabels["workflowUrl"] = workflow.GetURL()
+			infoLabels["workflowUrl"] = workflow.GetHTMLURL()
 		}
 
 		statLabels := prometheus.Labels{
@@ -564,7 +564,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 				"workflow":          LABEL_VALUE_UNKNOWN,
 				"workflowUrl":       "",
 				"workflowRun":       workflowRun.GetName(),
-				"workflowRunUrl":    workflowRun.GetURL(),
+				"workflowRunUrl":    workflowRun.GetHTMLURL(),
 				"branch":            workflowRun.GetHeadBranch(),
 				"actorLogin":        workflowRun.Actor.GetLogin(),
 				"actorType":         workflowRun.Actor.GetType(),
@@ -572,7 +572,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 
 			if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
 				infoLabels["workflow"] = workflow.GetName()
-				infoLabels["workflowUrl"] = workflow.GetURL()
+				infoLabels["workflowUrl"] = workflow.GetHTMLURL()
 			}
 
 			consecutiveFailMap[workflowId] = &struct {
