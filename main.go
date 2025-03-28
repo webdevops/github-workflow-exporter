@@ -37,7 +37,7 @@ var (
 	gitTag    = "<unknown>"
 
 	// cache config
-	cacheTag = "v1"
+	cacheTag = "v2"
 )
 
 type Portrange struct {
