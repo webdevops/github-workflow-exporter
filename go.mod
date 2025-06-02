@@ -5,8 +5,8 @@ go 1.24.0
 toolchain go1.24.2
 
 require (
-	github.com/KimMachineGun/automemlimit v0.7.1
-	github.com/bradleyfalzon/ghinstallation/v2 v2.15.0
+	github.com/KimMachineGun/automemlimit v0.7.2
+	github.com/bradleyfalzon/ghinstallation/v2 v2.16.0
 	github.com/google/go-github/v61 v61.0.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/prometheus/client_golang v1.22.0
@@ -39,7 +39,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-github/v71 v71.0.0 // indirect
+	github.com/google/go-github/v72 v72.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
