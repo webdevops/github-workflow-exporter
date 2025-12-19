@@ -479,9 +479,6 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 		workflowId := workflowRun.GetWorkflowID()
 
 		// skip forks
-		if workflowRun.GetRepository().Fork != nil && *workflowRun.GetRepository().Fork {
-			continue
-		}
 		if workflowRun.GetHeadRepository().Fork != nil && *workflowRun.GetHeadRepository().Fork {
 			continue
 		}
