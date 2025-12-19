@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"runtime"
@@ -35,6 +36,7 @@ var (
 	// Git version information
 	gitCommit = "<unknown>"
 	gitTag    = "<unknown>"
+	buildDate = "<unknown>"
 
 	// cache config
 	cacheTag = "v2"
@@ -47,9 +49,9 @@ type Portrange struct {
 
 func main() {
 	initArgparser()
-	defer initLogger().Sync() // nolint:errcheck
+	initLogger()
 
-	logger.Infof("starting github-workflows-exporter v%s (%s; %s; by %v)", gitTag, gitCommit, runtime.Version(), Author)
+	logger.Infof("starting github-workflows-exporter v%s (%s; %s; by %v at %v)", gitTag, gitCommit, runtime.Version(), Author, buildDate)
 	logger.Info(string(Opts.GetJson()))
 
 	initSystem()
@@ -93,7 +95,7 @@ func initGitHubConnection() {
 		githubClient = githubClient.WithAuthToken(Opts.GitHub.Auth.Token)
 	} else if Opts.GitHub.Auth.AppID != nil {
 		// app auth with private key
-		logger.Infof(`using GitHub app auth (appID: %v, installationID: %v) with private key`, *Opts.GitHub.Auth.AppID, *Opts.GitHub.Auth.AppInstallationID)
+		logger.Info(`using GitHub app auth with private key`, slog.Int64("appID", *Opts.GitHub.Auth.AppID), slog.Int64("installationID", *Opts.GitHub.Auth.AppInstallationID))
 
 		if Opts.GitHub.Auth.AppPrivateKeyFile == nil {
 			logger.Fatal(`GitHub app private key file not specified`)
@@ -101,7 +103,7 @@ func initGitHubConnection() {
 
 		itr, err := ghinstallation.NewKeyFromFile(http.DefaultTransport, *Opts.GitHub.Auth.AppID, *Opts.GitHub.Auth.AppInstallationID, *Opts.GitHub.Auth.AppPrivateKeyFile)
 		if err != nil {
-			log.Fatalf(`failed to init GitHub app auth: %v`, err)
+			log.Fatal(`failed to init GitHub app auth`, slog.Any("error", err))
 		}
 
 		// adapt enterprise url
@@ -144,7 +146,7 @@ func initGitHubConnection() {
 
 func initMetricCollector() {
 	collectorName := "workflows"
-	c := collector.New(collectorName, &MetricsCollectorGithubWorkflows{}, logger)
+	c := collector.New(collectorName, &MetricsCollectorGithubWorkflows{}, logger.Slog())
 	c.SetScapeTime(Opts.Scrape.Time)
 	c.SetCache(
 		Opts.GetCachePath(collectorName+".json"),
@@ -162,14 +164,14 @@ func startHttpServer() {
 	// healthz
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if _, err := fmt.Fprint(w, "Ok"); err != nil {
-			logger.Error(err)
+			logger.Error(err.Error())
 		}
 	})
 
 	// readyz
 	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if _, err := fmt.Fprint(w, "Ok"); err != nil {
-			logger.Error(err)
+			logger.Error(err.Error())
 		}
 	})
 
@@ -181,5 +183,7 @@ func startHttpServer() {
 		ReadTimeout:  Opts.Server.ReadTimeout,
 		WriteTimeout: Opts.Server.WriteTimeout,
 	}
-	logger.Fatal(srv.ListenAndServe())
+	if err := srv.ListenAndServe(); err != nil {
+		logger.Fatal(err.Error())
+	}
 }

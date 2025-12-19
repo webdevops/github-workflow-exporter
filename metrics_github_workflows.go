@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/go-github/v61/github"
@@ -217,12 +218,12 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 	}
 
 	for {
-		m.Logger().Debugf(`fetching repository list with page "%d"`, opts.Page)
+		m.Logger().Debug(`fetching repository list`, slog.Int("page", opts.Page))
 
 		result, response, err := githubClient.Repositories.ListByOrg(m.Context(), org, &opts)
 		var ghRateLimitError *github.RateLimitError
 		if ok := errors.As(err, &ghRateLimitError); ok {
-			m.Logger().Debugf("ListByOrg ratelimited. Pausing until %s", ghRateLimitError.Rate.Reset.Time.String())
+			m.Logger().Debug("request ListByOrg rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
 			time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
 			continue
 		} else if err != nil {
@@ -246,7 +247,7 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 				repoCustomProperties, _, err = githubClient.Repositories.GetAllCustomPropertyValues(m.Context(), org, repository.GetName())
 				var ghRateLimitError *github.RateLimitError
 				if ok := errors.As(err, &ghRateLimitError); ok {
-					m.Logger().Debugf("GetAllCustomPropertyValues ratelimited. Pausing until %s", ghRateLimitError.Rate.Reset.Time.String())
+					m.Logger().Debug("request GetAllCustomPropertyValues rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
 					time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
 					continue
 				} else if err != nil {
@@ -271,12 +272,12 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(org, repo string) (ma
 	opts := github.ListOptions{PerPage: 100, Page: 1}
 
 	for {
-		m.Logger().Debugf(`fetching workflows list for repo "%s" with page "%d"`, repo, opts.Page)
+		m.Logger().Debug(`fetching workflows list for repository`, slog.String("repository", repo), slog.Int("page", opts.Page))
 
 		result, response, err := githubClient.Actions.ListWorkflows(m.Context(), org, repo, &opts)
 		var ghRateLimitError *github.RateLimitError
 		if ok := errors.As(err, &ghRateLimitError); ok {
-			m.Logger().Debugf("ListWorkflows ratelimited. Pausing until %s", ghRateLimitError.Rate.Reset.Time.String())
+			m.Logger().Debug("request ListWorkflows rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
 			time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
 			continue
 		} else if err != nil {
@@ -308,12 +309,12 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflowRuns(repo *github.Repos
 	}
 
 	for {
-		m.Logger().Debugf(`fetching list of workflow runs for repo "%s" with page "%d"`, repo.GetName(), opts.Page)
+		m.Logger().Debug(`fetching list of workflow runs for repository`, slog.String("repository", repo.GetName()), slog.Int("page", opts.Page))
 
 		result, response, err := githubClient.Actions.ListRepositoryWorkflowRuns(m.Context(), Opts.GitHub.Organization, *repo.Name, &opts)
 		var ghRateLimitError *github.RateLimitError
 		if ok := errors.As(err, &ghRateLimitError); ok {
-			m.Logger().Debugf("ListRepositoryWorkflowRuns ratelimited. Pausing until %s", ghRateLimitError.Rate.Reset.Time.String())
+			m.Logger().Debug("request ListRepositoryWorkflowRuns rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
 			time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
 			continue
 		} else if err != nil {
