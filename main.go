@@ -148,10 +148,13 @@ func initMetricCollector() {
 	collectorName := "workflows"
 	c := collector.New(collectorName, &MetricsCollectorGithubWorkflows{}, logger.Slog())
 	c.SetScapeTime(Opts.Scrape.Time)
-	c.SetCache(
+	err := c.SetCache(
 		Opts.GetCachePath(collectorName+".json"),
 		collector.BuildCacheTag(cacheTag, Opts.GitHub),
 	)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
 	if err := c.Start(); err != nil {
 		logger.Fatal(err.Error())
 	}
