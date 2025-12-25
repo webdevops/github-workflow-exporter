@@ -2,6 +2,8 @@ module github.com/webdevops/github-workflow-exporter
 
 go 1.25.0
 
+toolchain go1.25.5
+
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/bradleyfalzon/ghinstallation/v2 v2.17.0
