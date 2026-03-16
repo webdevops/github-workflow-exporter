@@ -6,7 +6,7 @@ toolchain go1.25.5
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
-	github.com/bradleyfalzon/ghinstallation/v2 v2.17.0
+	github.com/bradleyfalzon/ghinstallation/v2 v2.18.0
 	github.com/google/go-github/v61 v61.0.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/prometheus/client_golang v1.23.2
@@ -47,8 +47,8 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
-	github.com/google/go-github/v75 v75.0.0 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-github/v84 v84.0.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
