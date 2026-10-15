@@ -163,8 +163,8 @@ github.com/stretchr/objx v0.5.3/go.mod h1:rDQraq+vQZU7Fde9LOZLr8Tax6zZvy4kuNKF+Q
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
-github.com/webdevops/go-common v0.0.0-20260914212308-fafe6743167e h1:Kqc848zFcmbN6kZHMPCojGhsWQwdGBXvxVivLiWxgkE=
-github.com/webdevops/go-common v0.0.0-20260914212308-fafe6743167e/go.mod h1:O1fo7MpLO2Fbq1vxHBZ+LnAbkOMXnW1s2KADedQOv50=
+github.com/webdevops/go-common v0.0.0-20261015193616-5ae3ee0a0ca5 h1:xG7ShWf6tcyJXP6AMNYlPvQ0Zk++xM0mt/uWvBPWu4A=
+github.com/webdevops/go-common v0.0.0-20261015193616-5ae3ee0a0ca5/go.mod h1:O1fo7MpLO2Fbq1vxHBZ+LnAbkOMXnW1s2KADedQOv50=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 github.com/zeebo/assert v1.3.0 h1:g7C04CbJuIDKNPFHmsk4hwZDO5O+kntRxzaUoNXj+IQ=

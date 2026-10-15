@@ -8,7 +8,7 @@ require (
 	github.com/google/go-github/v61 v61.0.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/prometheus/client_golang v1.25.0
-	github.com/webdevops/go-common v0.0.0-20260914212308-fafe6743167e
+	github.com/webdevops/go-common v0.0.0-20261015193616-5ae3ee0a0ca5
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 )
 
