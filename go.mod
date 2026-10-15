@@ -6,6 +6,7 @@ require (
 	github.com/KimMachineGun/automemlimit v1.0.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
 	github.com/google/go-github/v61 v61.0.0
+	github.com/google/go-github/v92 v92.0.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/prometheus/client_golang v1.25.0
 	github.com/webdevops/go-common v0.0.0-20261015193616-5ae3ee0a0ca5

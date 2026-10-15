@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/webdevops/go-common/prometheus/collector"
 	"github.com/webdevops/go-common/utils/to"
@@ -233,7 +234,7 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 
 func (m *MetricsCollectorGithubWorkflows) Reset() {}
 
-func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Repository, error) {
+func (m *MetricsCollectorGithubWorkflows) getRepoList(ctx context.Context, org string) ([]*github.Repository, error) {
 	var repositories []*github.Repository
 
 	opts := github.RepositoryListByOrgOptions{
@@ -244,13 +245,8 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 	for {
 		m.Logger().Debug(`fetching repository list`, slog.Int("page", opts.Page))
 
-		result, response, err := githubClient.Repositories.ListByOrg(m.Context(), org, &opts)
-		var ghRateLimitError *github.RateLimitError
-		if ok := errors.As(err, &ghRateLimitError); ok {
-			m.Logger().Debug("request ListByOrg rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
-			time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
-			continue
-		} else if err != nil {
+		result, response, err := githubClient.Repositories.ListByOrg(ctx, org, &opts)
+		if err != nil {
 			return repositories, err
 		}
 
@@ -268,7 +264,7 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 			var err error
 			var repoCustomProperties []*github.CustomPropertyValue
 			for {
-				repoCustomProperties, _, err = githubClient.Repositories.GetAllCustomPropertyValues(m.Context(), org, repository.GetName())
+				repoCustomProperties, _, err = githubClient.Repositories.GetAllCustomPropertyValues(ctx, org, repository.GetName())
 				var ghRateLimitError *github.RateLimitError
 				if ok := errors.As(err, &ghRateLimitError); ok {
 					m.Logger().Debug("request GetAllCustomPropertyValues rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
@@ -280,7 +276,7 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 				break
 			}
 
-			repository.CustomProperties = map[string]string{}
+			repository.CustomProperties = map[string]any{}
 			for _, property := range repoCustomProperties {
 				repository.CustomProperties[property.PropertyName] = property.GetValue()
 			}
@@ -290,7 +286,7 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 	return repositories, nil
 }
 
-func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(org, repo string) (map[int64]*github.Workflow, error) {
+func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(ctx context.Context, org, repo string) (map[int64]*github.Workflow, error) {
 	workflows := map[int64]*github.Workflow{}
 
 	opts := github.ListOptions{PerPage: 100, Page: 1}
@@ -298,13 +294,8 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(org, repo string) (ma
 	for {
 		m.Logger().Debug(`fetching workflows list for repository`, slog.String("repository", repo), slog.Int("page", opts.Page))
 
-		result, response, err := githubClient.Actions.ListWorkflows(m.Context(), org, repo, &opts)
-		var ghRateLimitError *github.RateLimitError
-		if ok := errors.As(err, &ghRateLimitError); ok {
-			m.Logger().Debug("request ListWorkflows rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
-			time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
-			continue
-		} else if err != nil {
+		result, response, err := githubClient.Actions.ListWorkflows(ctx, org, repo, &opts)
+		if err != nil {
 			return workflows, err
 		}
 
@@ -322,7 +313,7 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(org, repo string) (ma
 	return workflows, nil
 }
 
-func (m *MetricsCollectorGithubWorkflows) getRepoWorkflowRuns(repo *github.Repository) ([]*github.WorkflowRun, error) {
+func (m *MetricsCollectorGithubWorkflows) getRepoWorkflowRuns(ctx context.Context, repo *github.Repository) ([]*github.WorkflowRun, error) {
 	var workflowRuns []*github.WorkflowRun
 
 	opts := github.ListWorkflowRunsOptions{
@@ -336,13 +327,8 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflowRuns(repo *github.Repos
 	for {
 		m.Logger().Debug(`fetching list of workflow runs for repository`, slog.String("repository", repo.GetName()), slog.Int("page", opts.Page))
 
-		result, response, err := githubClient.Actions.ListRepositoryWorkflowRuns(m.Context(), Opts.GitHub.Organization, *repo.Name, &opts)
-		var ghRateLimitError *github.RateLimitError
-		if ok := errors.As(err, &ghRateLimitError); ok {
-			m.Logger().Debug("request ListRepositoryWorkflowRuns rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
-			time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
-			continue
-		} else if err != nil {
+		result, response, err := githubClient.Actions.ListRepositoryWorkflowRuns(ctx, Opts.GitHub.Organization, *repo.Name, &opts)
+		if err != nil {
 			return workflowRuns, err
 		}
 
@@ -362,9 +348,11 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 	repositoryMetric := m.Collector.GetMetricList("repository")
 	workflowMetric := m.Collector.GetMetricList("workflow")
 
+	ctx := context.WithValue(m.Context(), github.SleepUntilPrimaryRateLimitResetWhenRateLimited, true)
+
 	org := Opts.GitHub.Organization
 
-	repositories, err := m.getRepoList(org)
+	repositories, err := m.getRepoList(ctx, org)
 	if err != nil {
 		panic(err)
 	}
@@ -389,7 +377,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 				propLabels[labelName] = ""
 
 				if val, exists := repo.CustomProperties[customProp]; exists {
-					propLabels[labelName] = val
+					propLabels[labelName] = fmt.Sprintf("%v", val)
 				}
 			}
 		}
@@ -406,7 +394,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 		repositoryMetric.AddInfo(labels)
 
 		// get workflows
-		workflows, err := m.getRepoWorkflows(org, repo.GetName())
+		workflows, err := m.getRepoWorkflows(ctx, org, repo.GetName())
 		if err != nil {
 			panic(err)
 		}
@@ -429,7 +417,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 		}
 
 		if len(workflows) >= 1 {
-			workflowRuns, err := m.getRepoWorkflowRuns(repo)
+			workflowRuns, err := m.getRepoWorkflowRuns(ctx, repo)
 			if err != nil {
 				panic(err)
 			}

@@ -14,7 +14,7 @@ import (
 
 	_ "github.com/KimMachineGun/automemlimit"
 	ghinstallation "github.com/bradleyfalzon/ghinstallation/v2"
-	github "github.com/google/go-github/v61/github"
+	github "github.com/google/go-github/v92/github"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/webdevops/go-common/prometheus/collector"
@@ -86,13 +86,19 @@ func initArgparser() {
 func initGitHubConnection() {
 	var err error
 
+	userAgent := fmt.Sprintf(`%s/%s`, UserAgent, gitTag)
+
 	httpClient := &http.Client{}
+
+	githugClientOpts := []github.ClientOptionsFunc{
+		github.WithHTTPClient(httpClient),
+		github.WithUserAgent(userAgent),
+	}
 
 	if Opts.GitHub.Auth.Token != "" {
 		// token auth
 		logger.Info(`using GitHub token auth`)
-		githubClient = github.NewClient(httpClient)
-		githubClient = githubClient.WithAuthToken(Opts.GitHub.Auth.Token)
+		githugClientOpts = append(githugClientOpts, github.WithAuthToken(Opts.GitHub.Auth.Token))
 	} else if Opts.GitHub.Auth.AppID != nil {
 		// app auth with private key
 		logger.Info(`using GitHub app auth with private key`, slog.Int64("appID", *Opts.GitHub.Auth.AppID), slog.Int64("installationID", *Opts.GitHub.Auth.AppInstallationID))
@@ -119,21 +125,20 @@ func initGitHubConnection() {
 		}
 
 		httpClient.Transport = itr
-		githubClient = github.NewClient(httpClient)
 	} else {
 		// no auth, failing
 		logger.Fatal(`no GitHub auth specified, either use token or app based auth`)
 	}
 
-	githubClient.UserAgent = fmt.Sprintf(`%s/%s`, UserAgent, gitTag)
-
+	// GHES support
 	if Opts.GitHub.EnterpriseURL != "" {
-		githubClient, err = githubClient.WithEnterpriseURLs(Opts.GitHub.EnterpriseURL, "")
-		if err != nil {
-			log.Fatal(err)
-		}
+		githugClientOpts = append(githugClientOpts, github.WithEnterpriseURLs(Opts.GitHub.EnterpriseURL, ""))
 	}
 
+	githubClient, err = github.NewClient(githugClientOpts...)
+	if err != nil {
+		panic(err)
+	}
 	ctx := context.Background()
 
 	// test connection
