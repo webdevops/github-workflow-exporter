@@ -465,6 +465,7 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 			"actorType":         workflowRun.Actor.GetType(),
 		}
 
+		// add workflow labels
 		if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
 			infoLabels["workflow"] = workflow.GetName()
 			infoLabels["workflowUrl"] = workflow.GetHTMLURL()
@@ -530,6 +531,8 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 			"actorLogin":        workflowRun.Actor.GetLogin(),
 			"actorType":         workflowRun.Actor.GetType(),
 		}
+
+		// add workflow labels
 		if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
 			infoLabels["workflow"] = workflow.GetName()
 			infoLabels["workflowUrl"] = workflow.GetHTMLURL()
@@ -588,6 +591,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 				"branch":            workflowRun.GetHeadBranch(),
 			}
 
+			// add workflow labels
 			if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
 				infoLabels["workflow"] = workflow.GetName()
 				infoLabels["workflowUrl"] = workflow.GetHTMLURL()
@@ -652,6 +656,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, rep
 				"status":            workflowRun.GetStatus(),
 			}
 
+			// add workflow labels
 			if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
 				infoLabels["workflow"] = workflow.GetName()
 				infoLabels["workflowUrl"] = workflow.GetHTMLURL()
