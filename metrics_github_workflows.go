@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v61/github"
@@ -38,6 +39,7 @@ type (
 			workflowLatestRunDuration  *prometheus.GaugeVec
 
 			workflowConsecutiveFailures *prometheus.GaugeVec
+			workflowConsecutiveRuns     *prometheus.GaugeVec
 		}
 	}
 )
@@ -201,11 +203,32 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 			"workflowRun",
 			"workflowRunUrl",
 			"branch",
-			"actorLogin",
-			"actorType",
 		},
 	)
 	m.Collector.RegisterMetricList("workflowConsecutiveFailures", m.prometheus.workflowConsecutiveFailures, true)
+
+	// ##############################################################3
+	// Workflow consecutive failed runs
+
+	m.prometheus.workflowConsecutiveRuns = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_consecutive_runs",
+			Help: "GitHub workflow consecutive count of failed runs per workflow",
+		},
+		[]string{
+			"org",
+			"repo",
+			"workflowID",
+			"workflowRunNumber",
+			"workflow",
+			"workflowUrl",
+			"workflowRun",
+			"workflowRunUrl",
+			"branch",
+			"status",
+		},
+	)
+	m.Collector.RegisterMetricList("workflowConsecutiveRuns", m.prometheus.workflowConsecutiveRuns, true)
 }
 
 func (m *MetricsCollectorGithubWorkflows) Reset() {}
@@ -214,7 +237,8 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(org string) ([]*github.Rep
 	var repositories []*github.Repository
 
 	opts := github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: 100, Page: 1},
+		Page:    1,
+		PerPage: 100,
 	}
 
 	for {
@@ -304,7 +328,8 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflowRuns(repo *github.Repos
 	opts := github.ListWorkflowRunsOptions{
 		Branch:              repo.GetDefaultBranch(),
 		ExcludePullRequests: true,
-		ListOptions:         github.ListOptions{PerPage: 100, Page: 1},
+		Page:                1,
+		PerPage:             100,
 		Created:             ">=" + time.Now().Add(-Opts.GitHub.Workflows.Timeframe).Format(time.RFC3339),
 	}
 
@@ -413,6 +438,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 				m.collectRunningRuns(Opts.GitHub.Organization, repo, workflows, workflowRuns, callback)
 				m.collectLatestRun(Opts.GitHub.Organization, repo, workflows, workflowRuns, callback)
 				m.collectConsecutiveFailures(Opts.GitHub.Organization, repo, workflows, workflowRuns, callback)
+				m.collectConsecutiveRuns(Opts.GitHub.Organization, repo, workflows, workflowRuns, callback)
 			}
 		}
 	}
@@ -425,7 +451,7 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 	for _, row := range workflowRun {
 		workflowRun := row
 
-		// ignore non running workflows
+		// ignore non-running workflows //nolint
 		if !slices.Contains(githubWorkflowRunningStatus, workflowRun.GetStatus()) {
 			continue
 		}
@@ -572,8 +598,6 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 				"workflowRun":       workflowRun.GetName(),
 				"workflowRunUrl":    workflowRun.GetHTMLURL(),
 				"branch":            workflowRun.GetHeadBranch(),
-				"actorLogin":        workflowRun.Actor.GetLogin(),
-				"actorType":         workflowRun.Actor.GetType(),
 			}
 
 			if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
@@ -609,5 +633,68 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 	// process metrics
 	for _, row := range consecutiveFailMap {
 		consecutiveFailuresMetric.Add(row.labels, float64(row.count))
+	}
+}
+
+func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, repo *github.Repository, workflows map[int64]*github.Workflow, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+	consecutiveRunsMetric := m.Collector.GetMetricList("workflowConsecutiveRuns")
+
+	consecutiveRunMap := map[int64]*struct {
+		count  int64
+		status string
+		labels prometheus.Labels
+	}{}
+	consecutiveFinishedMap := map[int64]bool{}
+
+	for _, row := range workflowRun {
+		workflowRun := row
+		workflowId := workflowRun.GetWorkflowID()
+
+		if _, exists := consecutiveRunMap[workflowId]; !exists {
+			infoLabels := prometheus.Labels{
+				"org":               org,
+				"repo":              repo.GetName(),
+				"workflowID":        fmt.Sprintf("%v", workflowRun.GetWorkflowID()),
+				"workflowRunNumber": fmt.Sprintf("%v", workflowRun.GetRunNumber()),
+				"workflow":          LABEL_VALUE_UNKNOWN,
+				"workflowUrl":       "",
+				"workflowRun":       workflowRun.GetName(),
+				"workflowRunUrl":    workflowRun.GetHTMLURL(),
+				"branch":            workflowRun.GetHeadBranch(),
+				"status":            workflowRun.GetStatus(),
+			}
+
+			if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
+				infoLabels["workflow"] = workflow.GetName()
+				infoLabels["workflowUrl"] = workflow.GetHTMLURL()
+			}
+
+			consecutiveRunMap[workflowId] = &struct {
+				count  int64
+				status string
+				labels prometheus.Labels
+			}{
+				count:  0,
+				status: workflowRun.GetStatus(),
+				labels: infoLabels,
+			}
+			consecutiveFinishedMap[workflowId] = false
+		}
+
+		// successful run found for workload id, skipping all further runs
+		if consecutiveFinishedMap[workflowId] {
+			continue
+		}
+
+		if strings.EqualFold(consecutiveRunMap[workflowId].status, workflowRun.GetStatus()) {
+			consecutiveRunMap[workflowId].count++
+		} else {
+			consecutiveFinishedMap[workflowId] = true
+		}
+	}
+
+	// process metrics
+	for _, row := range consecutiveRunMap {
+		consecutiveRunsMetric.Add(row.labels, float64(row.count))
 	}
 }

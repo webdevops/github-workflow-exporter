@@ -53,10 +53,11 @@ or GitHub App auth with env vars `GITHUB_APP_ID` (id), `GITHUB_APP_INSTALLATION_
 
 ## Metrics
 
-| Metric                                         | Description                                   |
-|------------------------------------------------|-----------------------------------------------|
-| `github_repository_info`                       | Repository info metric                        |
-| `github_workflow_info`                         | Workflow info metric                          |
-| `github_workflow_latest_run`                   | Latest workflow run with conclusion as label  |
-| `github_workflow_latest_run_timestamp_seconds` | Latest workflow run with timestamp as value   |
-| `github_workflow_consecutive_failed_runs`      | Count of consecutive failed runs per workflow |
+| Metric                                         | Description                                       |
+|------------------------------------------------|---------------------------------------------------|
+| `github_repository_info`                       | Repository info metric                            |
+| `github_workflow_info`                         | Workflow info metric                              |
+| `github_workflow_latest_run`                   | Latest workflow run with conclusion as label      |
+| `github_workflow_latest_run_timestamp_seconds` | Latest workflow run with timestamp as value       |
+| `github_workflow_consecutive_failed_runs`      | Count of consecutive failed runs per workflow     |
+| `github_workflow_consecutive_runs`             | Count of consecutive runs per workflow and status |
