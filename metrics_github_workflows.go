@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -84,6 +83,7 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 				"workflowID",
 				"workflow",
 				"workflowUrl",
+				"workflowDefinitionUrl",
 				"state",
 				"path",
 			},
@@ -107,6 +107,7 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 			"workflowRunNumber",
 			"workflow",
 			"workflowUrl",
+			"workflowDefinitionUrl",
 			"workflowRun",
 			"workflowRunUrl",
 			"event",
@@ -147,6 +148,7 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 			"workflowRunNumber",
 			"workflow",
 			"workflowUrl",
+			"workflowDefinitionUrl",
 			"workflowRun",
 			"workflowRunUrl",
 			"event",
@@ -201,6 +203,7 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 			"workflowRunNumber",
 			"workflow",
 			"workflowUrl",
+			"workflowDefinitionUrl",
 			"workflowRun",
 			"workflowRunUrl",
 			"branch",
@@ -223,6 +226,7 @@ func (m *MetricsCollectorGithubWorkflows) Setup(collector *collector.Collector) 
 			"workflowRunNumber",
 			"workflow",
 			"workflowUrl",
+			"workflowDefinitionUrl",
 			"workflowRun",
 			"workflowRunUrl",
 			"branch",
@@ -265,12 +269,7 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(ctx context.Context, org s
 			var repoCustomProperties []*github.CustomPropertyValue
 			for {
 				repoCustomProperties, _, err = githubClient.Repositories.GetAllCustomPropertyValues(ctx, org, repository.GetName())
-				var ghRateLimitError *github.RateLimitError
-				if ok := errors.As(err, &ghRateLimitError); ok {
-					m.Logger().Debug("request GetAllCustomPropertyValues rate limited", slog.Time("waitingUntil", ghRateLimitError.Rate.Reset.Time))
-					time.Sleep(time.Until(ghRateLimitError.Rate.Reset.Time))
-					continue
-				} else if err != nil {
+				if err != nil {
 					panic(err)
 				}
 				break
@@ -286,22 +285,20 @@ func (m *MetricsCollectorGithubWorkflows) getRepoList(ctx context.Context, org s
 	return repositories, nil
 }
 
-func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(ctx context.Context, org, repo string) (map[int64]*github.Workflow, error) {
-	workflows := map[int64]*github.Workflow{}
+func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(ctx context.Context, org string, repo *github.Repository) (*GithubWorkflowList, error) {
+	workflows := NewGithubWorkflowList(org, repo)
 
 	opts := github.ListOptions{PerPage: 100, Page: 1}
 
 	for {
-		m.Logger().Debug(`fetching workflows list for repository`, slog.String("repository", repo), slog.Int("page", opts.Page))
+		m.Logger().Debug(`fetching workflows list for repository`, slog.String("repository", repo.GetName()), slog.Int("page", opts.Page))
 
-		result, response, err := githubClient.Actions.ListWorkflows(ctx, org, repo, &opts)
+		result, response, err := githubClient.Actions.ListWorkflows(ctx, org, repo.GetName(), &opts)
 		if err != nil {
 			return workflows, err
 		}
 
-		for _, row := range result.Workflows {
-			workflows[row.GetID()] = row
-		}
+		workflows.Add(result.Workflows...)
 
 		// calc next page
 		if response.NextPage == 0 {
@@ -394,29 +391,28 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 		repositoryMetric.AddInfo(labels)
 
 		// get workflows
-		workflows, err := m.getRepoWorkflows(ctx, org, repo.GetName())
+		workflows, err := m.getRepoWorkflows(ctx, org, repo)
 		if err != nil {
 			panic(err)
 		}
 
 		// workflow info metrics
-		for _, workflow := range workflows {
+		for _, workflow := range workflows.List() {
 			labels := prometheus.Labels{
-				"org":         org,
-				"repo":        repo.GetName(),
-				"workflowID":  fmt.Sprintf("%v", workflow.GetID()),
-				"workflow":    workflow.GetName(),
-				"state":       workflow.GetState(),
-				"path":        workflow.GetPath(),
-				"workflowUrl": workflow.GetHTMLURL(),
+				"org":        org,
+				"repo":       repo.GetName(),
+				"workflowID": fmt.Sprintf("%v", workflow.GetID()),
+				"state":      workflow.GetState(),
+				"path":       workflow.GetPath(),
 			}
+			workflow.AddDefaultLabels(labels)
 			for labelName, labelValue := range propLabels {
 				labels[labelName] = labelValue
 			}
 			workflowMetric.AddInfo(labels)
 		}
 
-		if len(workflows) >= 1 {
+		if workflows.Count() >= 1 {
 			workflowRuns, err := m.getRepoWorkflowRuns(ctx, repo)
 			if err != nil {
 				panic(err)
@@ -432,7 +428,7 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 	}
 }
 
-func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *github.Repository, workflows map[int64]*github.Workflow, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRun []*github.WorkflowRun, callback chan<- func()) {
 	runMetric := m.Collector.GetMetricList("workflowRunRunning")
 	runStartTimeMetric := m.Collector.GetMetricList("workflowRunRunningStartTime")
 
@@ -466,10 +462,7 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 		}
 
 		// add workflow labels
-		if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
-			infoLabels["workflow"] = workflow.GetName()
-			infoLabels["workflowUrl"] = workflow.GetHTMLURL()
-		}
+		workflows.GetById(workflowRun.GetWorkflowID()).AddDefaultLabels(infoLabels)
 
 		statLabels := prometheus.Labels{
 			"org":               org,
@@ -483,7 +476,7 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 	}
 }
 
-func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *github.Repository, workflows map[int64]*github.Workflow, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRun []*github.WorkflowRun, callback chan<- func()) {
 	runMetric := m.Collector.GetMetricList("workflowLatestRun")
 	runTimestampMetric := m.Collector.GetMetricList("workflowLatestRunStartTime")
 	runDurationMetric := m.Collector.GetMetricList("workflowLatestRunDuration")
@@ -492,6 +485,11 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 	for _, row := range workflowRun {
 		workflowRun := row
 		workflowId := workflowRun.GetWorkflowID()
+
+		workflow := workflows.GetById(workflowRun.GetWorkflowID())
+		if !workflow.IsActive() {
+			continue
+		}
 
 		// skip forks
 		if workflowRun.GetHeadRepository().Fork != nil && *workflowRun.GetHeadRepository().Fork {
@@ -533,10 +531,7 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 		}
 
 		// add workflow labels
-		if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
-			infoLabels["workflow"] = workflow.GetName()
-			infoLabels["workflowUrl"] = workflow.GetHTMLURL()
-		}
+		workflows.GetById(workflowRun.GetWorkflowID()).AddDefaultLabels(infoLabels)
 
 		statLabels := prometheus.Labels{
 			"org":               org,
@@ -551,7 +546,7 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 	}
 }
 
-func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string, repo *github.Repository, workflows map[int64]*github.Workflow, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRun []*github.WorkflowRun, callback chan<- func()) {
 	consecutiveFailuresMetric := m.Collector.GetMetricList("workflowConsecutiveFailures")
 
 	consecutiveFailMap := map[int64]*struct {
@@ -563,6 +558,11 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 	for _, row := range workflowRun {
 		workflowRun := row
 		workflowId := workflowRun.GetWorkflowID()
+
+		workflow := workflows.GetById(workflowRun.GetWorkflowID())
+		if !workflow.IsActive() {
+			continue
+		}
 
 		// ignore running/not finished workflow runs
 		switch workflowRun.GetStatus() {
@@ -592,10 +592,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 			}
 
 			// add workflow labels
-			if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
-				infoLabels["workflow"] = workflow.GetName()
-				infoLabels["workflowUrl"] = workflow.GetHTMLURL()
-			}
+			workflow.AddDefaultLabels(infoLabels)
 
 			consecutiveFailMap[workflowId] = &struct {
 				count  int64
@@ -628,7 +625,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 	}
 }
 
-func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, repo *github.Repository, workflows map[int64]*github.Workflow, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRun []*github.WorkflowRun, callback chan<- func()) {
 	consecutiveRunsMetric := m.Collector.GetMetricList("workflowConsecutiveRuns")
 
 	consecutiveRunMap := map[int64]*struct {
@@ -641,6 +638,11 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, rep
 	for _, row := range workflowRun {
 		workflowRun := row
 		workflowId := workflowRun.GetWorkflowID()
+
+		workflow := workflows.GetById(workflowRun.GetWorkflowID())
+		if !workflow.IsActive() {
+			continue
+		}
 
 		if _, exists := consecutiveRunMap[workflowId]; !exists {
 			infoLabels := prometheus.Labels{
@@ -657,10 +659,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, rep
 			}
 
 			// add workflow labels
-			if workflow, ok := workflows[workflowRun.GetWorkflowID()]; ok {
-				infoLabels["workflow"] = workflow.GetName()
-				infoLabels["workflowUrl"] = workflow.GetHTMLURL()
-			}
+			workflow.AddDefaultLabels(infoLabels)
 
 			consecutiveRunMap[workflowId] = &struct {
 				count  int64
