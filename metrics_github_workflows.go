@@ -306,8 +306,8 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflows(ctx context.Context, 
 	return workflows, nil
 }
 
-func (m *MetricsCollectorGithubWorkflows) getRepoWorkflowRuns(ctx context.Context, repo *github.Repository) ([]*github.WorkflowRun, error) {
-	var workflowRuns []*github.WorkflowRun
+func (m *MetricsCollectorGithubWorkflows) getRepoWorkflowRuns(ctx context.Context, org string, repo *github.Repository) (*GithubWorkflowRunList, error) {
+	workflowRuns := NewGithubWorkflowRunList(org, repo)
 
 	opts := github.ListWorkflowRunsOptions{
 		Branch:              repo.GetDefaultBranch(),
@@ -325,7 +325,7 @@ func (m *MetricsCollectorGithubWorkflows) getRepoWorkflowRuns(ctx context.Contex
 			return workflowRuns, err
 		}
 
-		workflowRuns = append(workflowRuns, result.WorkflowRuns...)
+		workflowRuns.Add(result.WorkflowRuns...)
 
 		// calc next page
 		if response.NextPage == 0 {
@@ -409,12 +409,12 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 		}
 
 		if workflows.Count() >= 1 {
-			workflowRuns, err := m.getRepoWorkflowRuns(ctx, repo)
+			workflowRuns, err := m.getRepoWorkflowRuns(ctx, org, repo)
 			if err != nil {
 				panic(err)
 			}
 
-			if len(workflowRuns) >= 1 {
+			if workflowRuns.Count() >= 1 {
 				m.collectRunningRuns(Opts.GitHub.Organization, repo, workflows, workflowRuns, callback)
 				m.collectLatestRun(Opts.GitHub.Organization, repo, workflows, workflowRuns, callback)
 				m.collectConsecutiveFailures(Opts.GitHub.Organization, repo, workflows, workflowRuns, callback)
@@ -424,11 +424,11 @@ func (m *MetricsCollectorGithubWorkflows) Collect(callback chan<- func()) {
 	}
 }
 
-func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRunList *GithubWorkflowRunList, callback chan<- func()) {
 	runMetric := m.Collector.GetMetricList("workflowRunRunning")
 	runStartTimeMetric := m.Collector.GetMetricList("workflowRunRunningStartTime")
 
-	for _, row := range workflowRun {
+	for _, row := range workflowRunList.List() {
 		workflowRun := row
 
 		// ignore non-running workflows //nolint
@@ -472,13 +472,13 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 	}
 }
 
-func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRunList *GithubWorkflowRunList, callback chan<- func()) {
 	runMetric := m.Collector.GetMetricList("workflowLatestRun")
 	runTimestampMetric := m.Collector.GetMetricList("workflowLatestRunStartTime")
 	runDurationMetric := m.Collector.GetMetricList("workflowLatestRunDuration")
 
-	latestJobs := map[int64]*github.WorkflowRun{}
-	for _, row := range workflowRun {
+	latestJobs := map[int64]*GitHubWorkflowRun{}
+	for _, row := range workflowRunList.List() {
 		workflowRun := row
 		workflowId := workflowRun.GetWorkflowID()
 
@@ -542,7 +542,7 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 	}
 }
 
-func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRunList *GithubWorkflowRunList, callback chan<- func()) {
 	consecutiveFailuresMetric := m.Collector.GetMetricList("workflowConsecutiveFailures")
 
 	consecutiveFailMap := map[int64]*struct {
@@ -551,7 +551,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 	}{}
 	consecutiveFinishedMap := map[int64]bool{}
 
-	for _, row := range workflowRun {
+	for _, row := range workflowRunList.List() {
 		workflowRun := row
 		workflowId := workflowRun.GetWorkflowID()
 
@@ -612,7 +612,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 	}
 }
 
-func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRun []*github.WorkflowRun, callback chan<- func()) {
+func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, repo *github.Repository, workflows *GithubWorkflowList, workflowRunList *GithubWorkflowRunList, callback chan<- func()) {
 	consecutiveRunsMetric := m.Collector.GetMetricList("workflowConsecutiveRuns")
 
 	consecutiveRunMap := map[int64]*struct {
@@ -622,7 +622,7 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, rep
 	}{}
 	consecutiveFinishedMap := map[int64]bool{}
 
-	for _, row := range workflowRun {
+	for _, row := range workflowRunList.List() {
 		workflowRun := row
 		workflowId := workflowRun.GetWorkflowID()
 
