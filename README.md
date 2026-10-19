@@ -14,27 +14,42 @@ Usage:
   github-workflow-exporter [OPTIONS]
 
 Application Options:
-      --log.level=[trace|debug|info|warning|error] Log level (default: info) [$LOG_LEVEL]
-      --log.format=[logfmt|json]                   Log format (default: logfmt) [$LOG_FORMAT]
-      --log.source=[|short|file|full]              Show source for every log message (useful for debugging and bug reports) [$LOG_SOURCE]
-      --log.color=[|auto|yes|no]                   Enable color for logs [$LOG_COLOR]
-      --log.time                                   Show log time [$LOG_TIME]
-      --github.enterprise.url=                     GitHub enterprise url (self hosted) [$GITHUB_ENTERPRISE_URL]
-      --github.organization=                       GitHub organization name [$GITHUB_ORGANIZATION]
-      --github.token=                              GitHub token auth: PAT [$GITHUB_TOKEN]
-      --github.app.id=                             GitHub app auth: App ID [$GITHUB_APP_ID]
-      --github.app.installationid=                 GitHub app auth: App installation ID [$GITHUB_APP_INSTALLATION_ID]
-      --github.app.keyfile=                        GitHub app auth: Private key (path to file) [$GITHUB_APP_PRIVATE_KEY]
-      --github.repository.customprops=             GitHub repository custom properties as labels for repos and workflows (space delimiter) [$GITHUB_REPOSITORY_CUSTOMPROPS]
-      --github.workflows.timeframe=                GitHub workflow timeframe for fetching (default: 168h) [$GITHUB_WORKFLOWS_TIMEFRAME]
-      --scrape.time=                               Scrape time (default: 30m) [$SCRAPE_TIME]
-      --cache.path=                                Cache path (to folder, file://path... or azblob://storageaccount.blob.core.windows.net/containername or k8scm://{namespace}/{configmap}}) [$CACHE_PATH]
-      --server.bind=                               Server address (default: :8080) [$SERVER_BIND]
-      --server.timeout.read=                       Server read timeout (default: 5s) [$SERVER_TIMEOUT_READ]
-      --server.timeout.write=                      Server write timeout (default: 10s) [$SERVER_TIMEOUT_WRITE]
+      --log.level=[trace|debug|info|warning|error]  Log level (default: info) [$LOG_LEVEL]
+      --log.format=[logfmt|json]                    Log format (default: logfmt) [$LOG_FORMAT]
+      --log.source=[|short|file|full]               Show source for every log message (useful for debugging and bug reports) [$LOG_SOURCE]
+      --log.color=[|auto|yes|no]                    Enable color for logs [$LOG_COLOR]
+      --log.time                                    Show log time [$LOG_TIME]
+      --github.enterprise.url=                      GitHub enterprise url (self hosted) [$GITHUB_ENTERPRISE_URL]
+      --github.organization=                        GitHub organization name [$GITHUB_ORGANIZATION]
+      --github.token=                               GitHub token auth: PAT [$GITHUB_TOKEN]
+      --github.app.id=                              GitHub app auth: App ID [$GITHUB_APP_ID]
+      --github.app.installationid=                  GitHub app auth: App installation ID [$GITHUB_APP_INSTALLATION_ID]
+      --github.app.keyfile=                         GitHub app auth: Private key (path to file) [$GITHUB_APP_PRIVATE_KEY]
+      --github.repository.customprops=              GitHub repository custom properties as labels for repos and workflows (space delimiter)
+                                                    [$GITHUB_REPOSITORY_CUSTOMPROPS]
+      --github.workflows.timeframe=                 GitHub workflow timeframe for fetching (default: 168h) [$GITHUB_WORKFLOWS_TIMEFRAME]
+      --github.workflows.run_running.status=        workflow statuses for github_workflow_run_running metric (others will be ignored, *
+                                                    allows all) (default: in_progress, queued, waiting, pending)
+                                                    [$GITHUB_WORKFLOWS_RUN_RUNNING_STATUS]
+      --github.workflows.latest_run.status=         workflow statuses for github_workflow_run_running metric (others will be ignored, *
+                                                    allows all) (default: completed, expected, failure, startup_failure)
+                                                    [$GITHUB_WORKFLOWS_LATEST_RUN_STATUS]
+      --github.workflows.consecutive_failed.status= workflow statuses for github_workflow_consecutive_failed_runs metric (others will be
+                                                    ignored, * allows all) (default: completed, expected, failure, startup_failure)
+                                                    [$GITHUB_WORKFLOWS_CONSECUTIVE_FAILED_STATUS]
+      --github.workflows.consecutive_runs.status=   workflow statuses for github_workflow_consecutive_runs metric (others will be ignored,
+                                                    * allows all) (default: completed, expected, failure, startup_failure, queued, waiting,
+                                                    pending) [$GITHUB_WORKFLOWS_CONSECUTIVE_RUNS_STATUS]
+      --scrape.time=                                Scrape time (default: 30m) [$SCRAPE_TIME]
+      --cache.path=                                 Cache path (to folder, file://path... or
+                                                    azblob://storageaccount.blob.core.windows.net/containername or
+                                                    k8scm://{namespace}/{configmap}}) [$CACHE_PATH]
+      --server.bind=                                Server address (default: :8080) [$SERVER_BIND]
+      --server.timeout.read=                        Server read timeout (default: 5s) [$SERVER_TIMEOUT_READ]
+      --server.timeout.write=                       Server write timeout (default: 10s) [$SERVER_TIMEOUT_WRITE]
 
 Help Options:
-  -h, --help                                       Show this help message
+  -h, --help                                        Show this help message
 ```
 
 ### Authentication

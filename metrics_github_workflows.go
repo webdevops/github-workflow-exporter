@@ -11,7 +11,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/webdevops/go-common/prometheus/collector"
 	"github.com/webdevops/go-common/utils/to"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -431,8 +430,8 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 	for _, row := range workflowRunList.List() {
 		workflowRun := row
 
-		// ignore non-running workflows //nolint
-		if !slices.Contains(Opts.GitHub.Workflows.RunRunningIgnoreStatus, strings.ToLower(workflowRun.GetStatus())) {
+		// skip non-valid workflow statuses
+		if !workflowRun.HasStatus(Opts.GitHub.Workflows.RunRunningStatus) {
 			continue
 		}
 
@@ -492,8 +491,8 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 			continue
 		}
 
-		// ignore non-running workflows //nolint
-		if !slices.Contains(Opts.GitHub.Workflows.RunLatestIgnoreStatus, strings.ToLower(workflowRun.GetStatus())) {
+		// skip non-valid workflow statuses
+		if !workflowRun.HasStatus(Opts.GitHub.Workflows.RunLatestStatus) {
 			continue
 		}
 
@@ -560,8 +559,8 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 			continue
 		}
 
-		// ignore non-running workflows //nolint
-		if !slices.Contains(Opts.GitHub.Workflows.ConsecutiveFailuresIgnoreStatus, strings.ToLower(workflowRun.GetStatus())) {
+		// skip non-valid workflow statuses
+		if !workflowRun.HasStatus(Opts.GitHub.Workflows.ConsecutiveFailuresStatus) {
 			continue
 		}
 
@@ -631,8 +630,8 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, rep
 			continue
 		}
 
-		// ignore non-running workflows //nolint
-		if !slices.Contains(Opts.GitHub.Workflows.ConsecutiveRunIgnoreStatus, strings.ToLower(workflowRun.GetStatus())) {
+		// skip non-valid workflow statuses
+		if !workflowRun.HasStatus(Opts.GitHub.Workflows.ConsecutiveRunStatus) {
 			continue
 		}
 

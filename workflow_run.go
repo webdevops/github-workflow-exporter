@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/google/go-github/v92/github"
 )
 
@@ -30,10 +32,21 @@ func (list *GithubWorkflowRunList) Add(workflowRun ...*github.WorkflowRun) {
 		list.list = append(list.list, &GitHubWorkflowRun{item, list})
 	}
 }
+
 func (list *GithubWorkflowRunList) Count() int {
 	return len(list.list)
 }
 
 func (list *GithubWorkflowRunList) List() []*GitHubWorkflowRun {
 	return list.list
+}
+
+func (run *GitHubWorkflowRun) HasStatus(statuses []string) bool {
+	for _, status := range statuses {
+		if status == "*" || strings.EqualFold(status, run.GetStatus()) {
+			return true
+		}
+	}
+
+	return false
 }
