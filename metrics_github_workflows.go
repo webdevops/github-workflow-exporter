@@ -19,10 +19,6 @@ const (
 	LABEL_VALUE_UNKNOWN  = "<unknown>"
 )
 
-var (
-	githubWorkflowRunningStatus = []string{"in_progress", "action_required", "queued", "waiting", "pending"}
-)
-
 type (
 	MetricsCollectorGithubWorkflows struct {
 		collector.Processor
@@ -436,7 +432,7 @@ func (m *MetricsCollectorGithubWorkflows) collectRunningRuns(org string, repo *g
 		workflowRun := row
 
 		// ignore non-running workflows //nolint
-		if !slices.Contains(githubWorkflowRunningStatus, workflowRun.GetStatus()) {
+		if !slices.Contains(Opts.GitHub.Workflows.RunRunningIgnoreStatus, strings.ToLower(workflowRun.GetStatus())) {
 			continue
 		}
 
@@ -496,8 +492,8 @@ func (m *MetricsCollectorGithubWorkflows) collectLatestRun(org string, repo *git
 			continue
 		}
 
-		// ignore running/not finished workflow runs
-		if slices.Contains(githubWorkflowRunningStatus, workflowRun.GetStatus()) {
+		// ignore non-running workflows //nolint
+		if !slices.Contains(Opts.GitHub.Workflows.RunLatestIgnoreStatus, strings.ToLower(workflowRun.GetStatus())) {
 			continue
 		}
 
@@ -564,17 +560,8 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveFailures(org string,
 			continue
 		}
 
-		// ignore running/not finished workflow runs
-		switch workflowRun.GetStatus() {
-		case "in_progress":
-			continue
-		case "action_required":
-			continue
-		case "queued":
-			continue
-		case "waiting":
-			continue
-		case "pending":
+		// ignore non-running workflows //nolint
+		if !slices.Contains(Opts.GitHub.Workflows.ConsecutiveFailuresIgnoreStatus, strings.ToLower(workflowRun.GetStatus())) {
 			continue
 		}
 
@@ -641,6 +628,11 @@ func (m *MetricsCollectorGithubWorkflows) collectConsecutiveRuns(org string, rep
 
 		workflow := workflows.GetById(workflowRun.GetWorkflowID())
 		if !workflow.IsActive() {
+			continue
+		}
+
+		// ignore non-running workflows //nolint
+		if !slices.Contains(Opts.GitHub.Workflows.ConsecutiveRunIgnoreStatus, strings.ToLower(workflowRun.GetStatus())) {
 			continue
 		}
 
