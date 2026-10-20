@@ -2,15 +2,15 @@ module github.com/webdevops/github-workflow-exporter
 
 go 1.27.0
 
+toolchain go1.27.3
+
 require (
 	github.com/KimMachineGun/automemlimit v1.0.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
-	github.com/google/go-github/v61 v61.0.0
 	github.com/google/go-github/v92 v92.0.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/prometheus/client_golang v1.25.0
-	github.com/webdevops/go-common v0.0.0-20261015193616-5ae3ee0a0ca5
-	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
+	github.com/webdevops/go-common v0.0.0-20261020182825-f0fa1af415d3
 )
 
 require (
@@ -76,9 +76,10 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/term v0.46.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
