@@ -5,7 +5,7 @@ go 1.27.0
 toolchain go1.27.3
 
 require (
-	github.com/KimMachineGun/automemlimit v1.0.0
+	github.com/KimMachineGun/automemlimit v1.0.1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
 	github.com/google/go-github/v92 v92.0.0
 	github.com/jessevdk/go-flags v1.6.1

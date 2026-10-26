@@ -24,8 +24,8 @@ github.com/AzureAD/microsoft-authentication-extensions-for-go/cache v0.1.1 h1:WJ
 github.com/AzureAD/microsoft-authentication-extensions-for-go/cache v0.1.1/go.mod h1:tCcJZ0uHAmvjsVYzEFivsRTN00oz5BEsRgQHu5JZ9WE=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.8.0 h1:Nljr4q1GRA/5vCrMONS+g4u4LRHNgOXVSh3O43J2CnI=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.8.0/go.mod h1:Y33QHnf0FfdVewFFISOGe20mkZbxX4H839o955/PoeI=
-github.com/KimMachineGun/automemlimit v1.0.0 h1:+MqlvDE/pkJNjk1rU+O14QsH8k10nJAD0frB0lsxyvw=
-github.com/KimMachineGun/automemlimit v1.0.0/go.mod h1:n+BSXxQWDFS1DKh67Rqo0lgTsowsg6x65ak5uyngML0=
+github.com/KimMachineGun/automemlimit v1.0.1 h1:87PowSIJFht5TmyyZKJNR4y2v7Cm9OdCzsSMR8jXJHM=
+github.com/KimMachineGun/automemlimit v1.0.1/go.mod h1:n+BSXxQWDFS1DKh67Rqo0lgTsowsg6x65ak5uyngML0=
 github.com/andybalholm/brotli v1.2.2 h1:HzTuoo2ErYQqf5qvcJInB8uvqSVxRttzkFexPWtnceM=
 github.com/andybalholm/brotli v1.2.2/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/apache/arrow-go/v18 v18.7.0 h1:Vw/i+cJyebUofT7JlqFpe65LrmwxULn166jjwStM4HY=
